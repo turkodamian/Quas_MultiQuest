@@ -1,6 +1,7 @@
 # MultiQuest Manager - Batch ADB Manager for Multiple Quest Devices
-# Version 1.0.0 - Inspired by Quest ADB Scripts by Varset
+# Version 1.1.0 - Based on Quest ADB Scripts by Varset v5.2.0
 # Created for managing multiple Meta Quest headsets simultaneously
+# Uses the same proven ADB commands from QUAS
 
 param(
     [switch]$AutoDetect = $true
@@ -15,7 +16,7 @@ $script:ColorInfo = "White"
 
 # Global variables
 $script:ConnectedDevices = @()
-$script:Version = "1.0.0"
+$script:Version = "1.1.0"
 
 function Show-Banner {
     Clear-Host
@@ -171,7 +172,11 @@ function Menu-AppManagement {
                 if (Test-Path $apkPath) {
                     Invoke-BatchCommand -Description "Installing APK to all devices" -Command {
                         param($dev)
-                        & adb -s $dev.ID install -r "$apkPath"
+                        # Using QUAS method: install -r -g --no-streaming
+                        # -r = replace existing application
+                        # -g = grant all runtime permissions
+                        # --no-streaming = disable streaming install
+                        & adb -s $dev.ID install -r -g --no-streaming "$apkPath"
                     }
                 } else {
                     Write-Host "[!] APK file not found!" -ForegroundColor $ColorError
@@ -340,16 +345,21 @@ function Menu-DeviceManagement {
 
                 Invoke-BatchCommand -Description "Enabling wireless ADB on all devices" -Command {
                     param($dev)
-                    # Enable TCP/IP mode on port 5555
+                    # Using QUAS method: tcpip 5555
                     & adb -s $dev.ID tcpip 5555
                     Start-Sleep -Seconds 2
 
-                    # Get device IP
+                    # Get device IP address
                     $ip = & adb -s $dev.ID shell ip addr show wlan0 | Select-String "inet " | ForEach-Object {
                         $_.ToString().Trim().Split()[1].Split('/')[0]
                     }
 
-                    Write-Host "[i] Device IP: $ip - You can now connect via: adb connect $ip`:5555" -ForegroundColor $ColorInfo
+                    if ($ip) {
+                        Write-Host "[✓] Device: $($dev.Model) - IP: $ip" -ForegroundColor $ColorSuccess
+                        Write-Host "[i] To connect wirelessly: adb connect $ip`:5555" -ForegroundColor $ColorInfo
+                    } else {
+                        Write-Host "[!] Could not determine IP for $($dev.Model)" -ForegroundColor $ColorWarning
+                    }
                 }
 
                 Write-Host ""
@@ -504,7 +514,8 @@ function Menu-Screenshot {
         Write-Host " [1]  Take screenshot (all devices)" -ForegroundColor $ColorInfo
         Write-Host " [2]  Start screen recording (all devices)" -ForegroundColor $ColorInfo
         Write-Host " [3]  Stop screen recording (all devices)" -ForegroundColor $ColorInfo
-        Write-Host " [4]  Pull screenshots/recordings" -ForegroundColor $ColorInfo
+        Write-Host " [4]  Copy Oculus screenshots/videos to PC" -ForegroundColor $ColorInfo
+        Write-Host " [5]  Pull custom files from devices" -ForegroundColor $ColorInfo
         Write-Host " [0]  Back to main menu" -ForegroundColor $ColorWarning
         Write-Host ""
 
@@ -517,25 +528,14 @@ function Menu-Screenshot {
                 Invoke-BatchCommand -Description "Taking screenshots" -Command {
                     param($dev)
                     $filename = "screenshot_$timestamp.png"
-                    & adb -s $dev.ID shell screencap -p /sdcard/Download/$filename
-                    Write-Host "[i] Screenshot saved: /sdcard/Download/$filename" -ForegroundColor $ColorInfo
+                    # Using QUAS method: exec-out screencap (faster and more reliable)
+                    & adb -s $dev.ID exec-out screencap -p > "$($dev.ID)_$filename"
+                    Write-Host "[i] Screenshot saved: $($dev.ID)_$filename" -ForegroundColor $ColorInfo
                 }
 
                 Write-Host ""
-                $pull = Read-Host "Pull screenshots to PC? (yes/no)"
-                if ($pull -eq "yes") {
-                    $localFolder = ".\Screenshots_$timestamp"
-                    New-Item -ItemType Directory -Path $localFolder -Force | Out-Null
-
-                    Invoke-BatchCommand -Description "Pulling screenshots" -Command {
-                        param($dev)
-                        $filename = "screenshot_$timestamp.png"
-                        $outputPath = Join-Path $localFolder "$($dev.ID)_$filename"
-                        & adb -s $dev.ID pull /sdcard/Download/$filename $outputPath
-                    }
-
-                    Write-Host "[✓] Screenshots saved to: $localFolder" -ForegroundColor $ColorSuccess
-                }
+                Write-Host "[i] Screenshots are already saved in current directory" -ForegroundColor $ColorInfo
+                Write-Host "[i] Files named: [DEVICE_ID]_screenshot_*.png" -ForegroundColor $ColorInfo
                 Pause
             }
             "2" {
@@ -573,6 +573,34 @@ function Menu-Screenshot {
                 Pause
             }
             "4" {
+                # Using QUAS method: Pull from /sdcard/Oculus/Screenshots and /sdcard/Oculus/Videoshots
+                $desktopPath = [Environment]::GetFolderPath("Desktop")
+                $questMediaPath = Join-Path $desktopPath "QuestMedia"
+
+                if (!(Test-Path $questMediaPath)) {
+                    New-Item -ItemType Directory -Path $questMediaPath -Force | Out-Null
+                }
+
+                Invoke-BatchCommand -Description "Copying Oculus media to Desktop/QuestMedia" -Command {
+                    param($dev)
+                    $deviceFolder = Join-Path $questMediaPath $dev.ID
+                    New-Item -ItemType Directory -Path $deviceFolder -Force | Out-Null
+
+                    # Pull screenshots from Oculus folder (QUAS method)
+                    & adb -s $dev.ID pull /sdcard/Oculus/Screenshots "$deviceFolder\Screenshots" 2>$null
+                    # Pull videoshots from Oculus folder (QUAS method)
+                    & adb -s $dev.ID pull /sdcard/Oculus/Videoshots "$deviceFolder\Videoshots" 2>$null
+
+                    Write-Host "[i] Media from $($dev.Model) copied to $deviceFolder" -ForegroundColor $ColorInfo
+                }
+
+                Write-Host ""
+                Write-Host "[✓] All media saved to: $questMediaPath" -ForegroundColor $ColorSuccess
+                Write-Host "[i] Opening folder..." -ForegroundColor $ColorInfo
+                Start-Process $questMediaPath
+                Pause
+            }
+            "5" {
                 $localFolder = Read-Host "Enter local folder to save files"
 
                 if (!(Test-Path $localFolder)) {

@@ -1,5 +1,5 @@
 # MultiQuest Manager - Batch ADB Manager for Multiple Quest Devices
-# Version 1.1.0 - Based on Quest ADB Scripts by Varset v5.2.0
+# Version 1.2.0 - Based on Quest ADB Scripts by Varset v5.2.0
 # Created for managing multiple Meta Quest headsets simultaneously
 # Uses the same proven ADB commands from QUAS
 
@@ -16,7 +16,7 @@ $script:ColorInfo = "White"
 
 # Global variables
 $script:ConnectedDevices = @()
-$script:Version = "1.1.0"
+$script:Version = "1.2.0"
 
 function Show-Banner {
     Clear-Host
@@ -72,19 +72,88 @@ function Get-ConnectedQuests {
     return $devices
 }
 
+function Select-TargetDevices {
+    param(
+        [string]$OperationName
+    )
+
+    if ($script:ConnectedDevices.Count -eq 0) {
+        Write-Host "[!] No devices connected!" -ForegroundColor $ColorError
+        return @()
+    }
+
+    if ($script:ConnectedDevices.Count -eq 1) {
+        # Only one device, use it automatically
+        Write-Host "[i] Auto-selected: $($script:ConnectedDevices[0].Model) ($($script:ConnectedDevices[0].ID))" -ForegroundColor $ColorInfo
+        return $script:ConnectedDevices
+    }
+
+    # Multiple devices, ask user
+    Write-Host ""
+    Write-Host "════════════ SELECT TARGET DEVICES ════════════" -ForegroundColor $ColorTitle
+    Write-Host ""
+    Write-Host "Operation: $OperationName" -ForegroundColor $ColorWarning
+    Write-Host ""
+    Write-Host "Connected devices:" -ForegroundColor $ColorInfo
+
+    for ($i = 0; $i -lt $script:ConnectedDevices.Count; $i++) {
+        $dev = $script:ConnectedDevices[$i]
+        Write-Host "  [$($i+1)] $($dev.Brand) $($dev.Model) - $($dev.ID)" -ForegroundColor $ColorInfo
+    }
+
+    Write-Host ""
+    Write-Host "  [A] Apply to ALL devices" -ForegroundColor $ColorSuccess
+    Write-Host "  [0] Cancel" -ForegroundColor $ColorError
+    Write-Host ""
+    Write-Host "═══════════════════════════════════════════════" -ForegroundColor $ColorTitle
+    Write-Host ""
+
+    $choice = Read-Host "Select device(s) (1-$($script:ConnectedDevices.Count), A for all, or comma-separated like 1,3)"
+
+    if ($choice -eq "0") {
+        return @()
+    }
+
+    if ($choice -eq "A" -or $choice -eq "a") {
+        Write-Host "[i] Selected: ALL devices ($($script:ConnectedDevices.Count))" -ForegroundColor $ColorSuccess
+        return $script:ConnectedDevices
+    }
+
+    # Parse comma-separated list
+    $selectedDevices = @()
+    $indices = $choice -split ',' | ForEach-Object { $_.Trim() }
+
+    foreach ($index in $indices) {
+        if ($index -match '^\d+$') {
+            $idx = [int]$index - 1
+            if ($idx -ge 0 -and $idx -lt $script:ConnectedDevices.Count) {
+                $selectedDevices += $script:ConnectedDevices[$idx]
+            }
+        }
+    }
+
+    if ($selectedDevices.Count -eq 0) {
+        Write-Host "[!] No valid devices selected!" -ForegroundColor $ColorError
+        return @()
+    }
+
+    Write-Host "[i] Selected $($selectedDevices.Count) device(s)" -ForegroundColor $ColorSuccess
+    return $selectedDevices
+}
+
 function Show-MainMenu {
     Write-Host "══════════════════ MAIN MENU ══════════════════" -ForegroundColor $ColorTitle
     Write-Host ""
-    Write-Host " [1]  📱 Device Management" -ForegroundColor $ColorInfo
-    Write-Host " [2]  📦 App Management (Batch Install/Uninstall)" -ForegroundColor $ColorInfo
-    Write-Host " [3]  📁 File Operations (Batch Transfer)" -ForegroundColor $ColorInfo
-    Write-Host " [4]  🔧 System Settings (Apply to All)" -ForegroundColor $ColorInfo
-    Write-Host " [5]  📸 Screenshot/Screen Record" -ForegroundColor $ColorInfo
-    Write-Host " [6]  🔐 Certificate Management" -ForegroundColor $ColorInfo
-    Write-Host " [7]  🔄 Reboot Devices" -ForegroundColor $ColorInfo
-    Write-Host " [8]  ℹ️  Device Information" -ForegroundColor $ColorInfo
-    Write-Host " [9]  🔍 Refresh Device List" -ForegroundColor $ColorInfo
-    Write-Host " [0]  ❌ Exit" -ForegroundColor $ColorError
+    Write-Host " [1]  Device Management" -ForegroundColor $ColorInfo
+    Write-Host " [2]  App Management (Install/Uninstall)" -ForegroundColor $ColorInfo
+    Write-Host " [3]  File Operations (Transfer)" -ForegroundColor $ColorInfo
+    Write-Host " [4]  System Settings" -ForegroundColor $ColorInfo
+    Write-Host " [5]  Screenshot/Screen Record" -ForegroundColor $ColorInfo
+    Write-Host " [6]  Certificate Management" -ForegroundColor $ColorInfo
+    Write-Host " [7]  Reboot Devices" -ForegroundColor $ColorInfo
+    Write-Host " [8]  Device Information" -ForegroundColor $ColorInfo
+    Write-Host " [9]  Refresh Device List" -ForegroundColor $ColorInfo
+    Write-Host " [0]  Exit" -ForegroundColor $ColorError
     Write-Host ""
     Write-Host "═══════════════════════════════════════════════" -ForegroundColor $ColorTitle
     Write-Host ""
@@ -170,13 +239,16 @@ function Menu-AppManagement {
             "1" {
                 $apkPath = Read-Host "Enter APK path"
                 if (Test-Path $apkPath) {
-                    Invoke-BatchCommand -Description "Installing APK to all devices" -Command {
-                        param($dev)
-                        # Using QUAS method: install -r -g --no-streaming
-                        # -r = replace existing application
-                        # -g = grant all runtime permissions
-                        # --no-streaming = disable streaming install
-                        & adb -s $dev.ID install -r -g --no-streaming "$apkPath"
+                    $targetDevices = Select-TargetDevices -OperationName "Install APK: $(Split-Path $apkPath -Leaf)"
+                    if ($targetDevices.Count -gt 0) {
+                        Invoke-BatchCommand -Description "Installing APK" -Devices $targetDevices -Command {
+                            param($dev)
+                            # Using QUAS method: install -r -g --no-streaming
+                            # -r = replace existing application
+                            # -g = grant all runtime permissions
+                            # --no-streaming = disable streaming install
+                            & adb -s $dev.ID install -r -g --no-streaming "$apkPath"
+                        }
                     }
                 } else {
                     Write-Host "[!] APK file not found!" -ForegroundColor $ColorError
@@ -185,9 +257,12 @@ function Menu-AppManagement {
             }
             "2" {
                 $packageName = Read-Host "Enter package name (e.g., com.example.app)"
-                Invoke-BatchCommand -Description "Uninstalling app from all devices" -Command {
-                    param($dev)
-                    & adb -s $dev.ID uninstall "$packageName"
+                $targetDevices = Select-TargetDevices -OperationName "Uninstall: $packageName"
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Uninstalling app" -Devices $targetDevices -Command {
+                        param($dev)
+                        & adb -s $dev.ID uninstall "$packageName"
+                    }
                 }
                 Pause
             }
@@ -225,9 +300,12 @@ function Menu-FileOperations {
                 $remotePath = Read-Host "Enter remote path (e.g., /sdcard/Download/)"
 
                 if (Test-Path $localPath) {
-                    Invoke-BatchCommand -Description "Pushing file to all devices" -Command {
-                        param($dev)
-                        & adb -s $dev.ID push "$localPath" "$remotePath"
+                    $targetDevices = Select-TargetDevices -OperationName "Push: $(Split-Path $localPath -Leaf) -> $remotePath"
+                    if ($targetDevices.Count -gt 0) {
+                        Invoke-BatchCommand -Description "Pushing file" -Devices $targetDevices -Command {
+                            param($dev)
+                            & adb -s $dev.ID push "$localPath" "$remotePath"
+                        }
                     }
                 } else {
                     Write-Host "[!] File not found!" -ForegroundColor $ColorError
@@ -242,10 +320,13 @@ function Menu-FileOperations {
                     New-Item -ItemType Directory -Path $localFolder -Force | Out-Null
                 }
 
-                Invoke-BatchCommand -Description "Pulling file from all devices" -Command {
-                    param($dev)
-                    $outputPath = Join-Path $localFolder "$($dev.ID)_$(Split-Path $remotePath -Leaf)"
-                    & adb -s $dev.ID pull "$remotePath" "$outputPath"
+                $targetDevices = Select-TargetDevices -OperationName "Pull: $remotePath"
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Pulling file from devices" -Devices $targetDevices -Command {
+                        param($dev)
+                        $outputPath = Join-Path $localFolder "$($dev.ID)_$(Split-Path $remotePath -Leaf)"
+                        & adb -s $dev.ID pull "$remotePath" "$outputPath"
+                    }
                 }
                 Pause
             }
@@ -254,19 +335,25 @@ function Menu-FileOperations {
                 $confirm = Read-Host "Are you sure? (yes/no)"
 
                 if ($confirm -eq "yes") {
-                    Invoke-BatchCommand -Description "Deleting file from all devices" -Command {
-                        param($dev)
-                        & adb -s $dev.ID shell rm -f "$remotePath"
+                    $targetDevices = Select-TargetDevices -OperationName "Delete: $remotePath"
+                    if ($targetDevices.Count -gt 0) {
+                        Invoke-BatchCommand -Description "Deleting file from devices" -Devices $targetDevices -Command {
+                            param($dev)
+                            & adb -s $dev.ID shell rm -f "$remotePath"
+                        }
                     }
                 }
                 Pause
             }
             "4" {
                 $remotePath = Read-Host "Enter remote path (e.g., /sdcard/Download/)"
-                Invoke-BatchCommand -Description "Listing files" -Command {
-                    param($dev)
-                    Write-Host "`nFiles on $($dev.Model):" -ForegroundColor $ColorInfo
-                    & adb -s $dev.ID shell "ls -lah $remotePath"
+                $targetDevices = Select-TargetDevices -OperationName "List files: $remotePath"
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Listing files" -Devices $targetDevices -Command {
+                        param($dev)
+                        Write-Host "`nFiles on $($dev.Model):" -ForegroundColor $ColorInfo
+                        & adb -s $dev.ID shell "ls -lah $remotePath"
+                    }
                 }
                 Pause
             }
@@ -292,9 +379,12 @@ function Menu-CertificateManagement {
             "1" {
                 $certPath = Read-Host "Enter certificate path (.p12, .pfx, .crt, .pem)"
                 if (Test-Path $certPath) {
-                    Invoke-BatchCommand -Description "Pushing certificate to all devices" -Command {
-                        param($dev)
-                        & adb -s $dev.ID push "$certPath" "/sdcard/Download/"
+                    $targetDevices = Select-TargetDevices -OperationName "Push Certificate: $(Split-Path $certPath -Leaf)"
+                    if ($targetDevices.Count -gt 0) {
+                        Invoke-BatchCommand -Description "Pushing certificate" -Devices $targetDevices -Command {
+                            param($dev)
+                            & adb -s $dev.ID push "$certPath" "/sdcard/Download/"
+                        }
                     }
                 } else {
                     Write-Host "[!] Certificate file not found!" -ForegroundColor $ColorError
@@ -302,11 +392,14 @@ function Menu-CertificateManagement {
                 Pause
             }
             "2" {
-                Invoke-BatchCommand -Description "Opening certificate installer" -Command {
-                    param($dev)
-                    & adb -s $dev.ID shell am start -n com.android.certinstaller/.CertInstallerMain
+                $targetDevices = Select-TargetDevices -OperationName "Open Certificate Installer"
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Opening certificate installer" -Devices $targetDevices -Command {
+                        param($dev)
+                        & adb -s $dev.ID shell am start -n com.android.certinstaller/.CertInstallerMain
+                    }
+                    Write-Host "`n[i] Check your Quest headsets to complete installation" -ForegroundColor $ColorWarning
                 }
-                Write-Host "`n[i] Check your Quest headsets to complete installation" -ForegroundColor $ColorWarning
                 Pause
             }
             "3" {
@@ -343,28 +436,31 @@ function Menu-DeviceManagement {
                 Write-Host "[*] Wireless ADB Setup" -ForegroundColor $ColorInfo
                 Write-Host "────────────────────────────────────────────────" -ForegroundColor $ColorTitle
 
-                Invoke-BatchCommand -Description "Enabling wireless ADB on all devices" -Command {
-                    param($dev)
-                    # Using QUAS method: tcpip 5555
-                    & adb -s $dev.ID tcpip 5555
-                    Start-Sleep -Seconds 2
+                $targetDevices = Select-TargetDevices -OperationName "Enable Wireless ADB"
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Enabling wireless ADB" -Devices $targetDevices -Command {
+                        param($dev)
+                        # Using QUAS method: tcpip 5555
+                        & adb -s $dev.ID tcpip 5555
+                        Start-Sleep -Seconds 2
 
-                    # Get device IP address
-                    $ip = & adb -s $dev.ID shell ip addr show wlan0 | Select-String "inet " | ForEach-Object {
-                        $_.ToString().Trim().Split()[1].Split('/')[0]
+                        # Get device IP address
+                        $ip = & adb -s $dev.ID shell ip addr show wlan0 | Select-String "inet " | ForEach-Object {
+                            $_.ToString().Trim().Split()[1].Split('/')[0]
+                        }
+
+                        if ($ip) {
+                            Write-Host "[✓] Device: $($dev.Model) - IP: $ip" -ForegroundColor $ColorSuccess
+                            Write-Host "[i] To connect wirelessly: adb connect $ip`:5555" -ForegroundColor $ColorInfo
+                        } else {
+                            Write-Host "[!] Could not determine IP for $($dev.Model)" -ForegroundColor $ColorWarning
+                        }
                     }
 
-                    if ($ip) {
-                        Write-Host "[✓] Device: $($dev.Model) - IP: $ip" -ForegroundColor $ColorSuccess
-                        Write-Host "[i] To connect wirelessly: adb connect $ip`:5555" -ForegroundColor $ColorInfo
-                    } else {
-                        Write-Host "[!] Could not determine IP for $($dev.Model)" -ForegroundColor $ColorWarning
-                    }
+                    Write-Host ""
+                    Write-Host "[i] To connect wirelessly, disconnect USB and run:" -ForegroundColor $ColorWarning
+                    Write-Host "    adb connect <DEVICE_IP>:5555" -ForegroundColor $ColorInfo
                 }
-
-                Write-Host ""
-                Write-Host "[i] To connect wirelessly, disconnect USB and run:" -ForegroundColor $ColorWarning
-                Write-Host "    adb connect <DEVICE_IP>:5555" -ForegroundColor $ColorInfo
                 Pause
             }
             "2" {
@@ -374,13 +470,16 @@ function Menu-DeviceManagement {
                 Pause
             }
             "3" {
-                Write-Host ""
-                Write-Host "[i] USB Debugging settings opened on all devices" -ForegroundColor $ColorInfo
-                Write-Host "[i] Check your Quest headsets to toggle USB debugging" -ForegroundColor $ColorWarning
+                $targetDevices = Select-TargetDevices -OperationName "Open USB Debugging Settings"
+                if ($targetDevices.Count -gt 0) {
+                    Write-Host ""
+                    Write-Host "[i] USB Debugging settings opened on selected devices" -ForegroundColor $ColorInfo
+                    Write-Host "[i] Check your Quest headsets to toggle USB debugging" -ForegroundColor $ColorWarning
 
-                Invoke-BatchCommand -Description "Opening developer settings" -Command {
-                    param($dev)
-                    & adb -s $dev.ID shell am start -n com.android.settings/.Settings
+                    Invoke-BatchCommand -Description "Opening developer settings" -Devices $targetDevices -Command {
+                        param($dev)
+                        & adb -s $dev.ID shell am start -n com.android.settings/.Settings
+                    }
                 }
                 Pause
             }
@@ -426,9 +525,12 @@ function Menu-SystemSettings {
             "1" {
                 $brightness = Read-Host "Enter brightness level (0-255)"
                 if ($brightness -match '^\d+$' -and [int]$brightness -ge 0 -and [int]$brightness -le 255) {
-                    Invoke-BatchCommand -Description "Setting brightness to $brightness" -Command {
-                        param($dev)
-                        & adb -s $dev.ID shell settings put system screen_brightness $brightness
+                    $targetDevices = Select-TargetDevices -OperationName "Set Brightness: $brightness"
+                    if ($targetDevices.Count -gt 0) {
+                        Invoke-BatchCommand -Description "Setting brightness to $brightness" -Devices $targetDevices -Command {
+                            param($dev)
+                            & adb -s $dev.ID shell settings put system screen_brightness $brightness
+                        }
                     }
                 } else {
                     Write-Host "[!] Invalid brightness value!" -ForegroundColor $ColorError
@@ -438,9 +540,12 @@ function Menu-SystemSettings {
             "2" {
                 $volume = Read-Host "Enter volume level (0-15)"
                 if ($volume -match '^\d+$' -and [int]$volume -ge 0 -and [int]$volume -le 15) {
-                    Invoke-BatchCommand -Description "Setting volume to $volume" -Command {
-                        param($dev)
-                        & adb -s $dev.ID shell media volume --set $volume
+                    $targetDevices = Select-TargetDevices -OperationName "Set Volume: $volume"
+                    if ($targetDevices.Count -gt 0) {
+                        Invoke-BatchCommand -Description "Setting volume to $volume" -Devices $targetDevices -Command {
+                            param($dev)
+                            & adb -s $dev.ID shell media volume --set $volume
+                        }
                     }
                 } else {
                     Write-Host "[!] Invalid volume value!" -ForegroundColor $ColorError
@@ -454,30 +559,39 @@ function Menu-SystemSettings {
                 $wifiChoice = Read-Host "Select option"
 
                 $enable = if ($wifiChoice -eq "1") { "enable" } else { "disable" }
+                $targetDevices = Select-TargetDevices -OperationName "$enable Wi-Fi"
 
-                Invoke-BatchCommand -Description "$enable Wi-Fi on all devices" -Command {
-                    param($dev)
-                    & adb -s $dev.ID shell svc wifi $enable
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "$enable Wi-Fi" -Devices $targetDevices -Command {
+                        param($dev)
+                        & adb -s $dev.ID shell svc wifi $enable
+                    }
                 }
                 Pause
             }
             "4" {
                 $timezone = Read-Host "Enter timezone (e.g., America/New_York, Europe/Madrid)"
-                Invoke-BatchCommand -Description "Setting timezone to $timezone" -Command {
-                    param($dev)
-                    & adb -s $dev.ID shell setprop persist.sys.timezone $timezone
+                $targetDevices = Select-TargetDevices -OperationName "Set Timezone: $timezone"
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Setting timezone to $timezone" -Devices $targetDevices -Command {
+                        param($dev)
+                        & adb -s $dev.ID shell setprop persist.sys.timezone $timezone
+                    }
                 }
                 Pause
             }
             "5" {
-                $confirm = Read-Host "Clear cache for all apps on all devices? (yes/no)"
+                $confirm = Read-Host "Clear cache for all apps on selected devices? (yes/no)"
                 if ($confirm -eq "yes") {
-                    Invoke-BatchCommand -Description "Clearing app cache" -Command {
-                        param($dev)
-                        # Get list of packages and clear cache
-                        $packages = & adb -s $dev.ID shell pm list packages | ForEach-Object { $_.Replace("package:", "") }
-                        foreach ($pkg in $packages) {
-                            & adb -s $dev.ID shell pm clear $pkg 2>$null
+                    $targetDevices = Select-TargetDevices -OperationName "Clear App Cache"
+                    if ($targetDevices.Count -gt 0) {
+                        Invoke-BatchCommand -Description "Clearing app cache" -Devices $targetDevices -Command {
+                            param($dev)
+                            # Get list of packages and clear cache
+                            $packages = & adb -s $dev.ID shell pm list packages | ForEach-Object { $_.Replace("package:", "") }
+                            foreach ($pkg in $packages) {
+                                & adb -s $dev.ID shell pm clear $pkg 2>$null
+                            }
                         }
                     }
                 }
@@ -487,18 +601,24 @@ function Menu-SystemSettings {
                 $package = Read-Host "Enter package name (e.g., com.example.app)"
                 $permission = Read-Host "Enter permission (e.g., android.permission.CAMERA)"
 
-                Invoke-BatchCommand -Description "Granting $permission to $package" -Command {
-                    param($dev)
-                    & adb -s $dev.ID shell pm grant $package $permission
+                $targetDevices = Select-TargetDevices -OperationName "Grant Permission: $permission to $package"
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Granting $permission to $package" -Devices $targetDevices -Command {
+                        param($dev)
+                        & adb -s $dev.ID shell pm grant $package $permission
+                    }
                 }
                 Pause
             }
             "7" {
-                Invoke-BatchCommand -Description "Opening developer options" -Command {
-                    param($dev)
-                    & adb -s $dev.ID shell am start -n com.android.settings/.Settings
+                $targetDevices = Select-TargetDevices -OperationName "Open Developer Options"
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Opening developer options" -Devices $targetDevices -Command {
+                        param($dev)
+                        & adb -s $dev.ID shell am start -n com.android.settings/.Settings
+                    }
+                    Write-Host "`n[i] Check your Quest headsets to modify developer options" -ForegroundColor $ColorWarning
                 }
-                Write-Host "`n[i] Check your Quest headsets to modify developer options" -ForegroundColor $ColorWarning
                 Pause
             }
             "0" { return }
@@ -524,80 +644,94 @@ function Menu-Screenshot {
         switch ($choice) {
             "1" {
                 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+                $targetDevices = Select-TargetDevices -OperationName "Take Screenshot"
 
-                Invoke-BatchCommand -Description "Taking screenshots" -Command {
-                    param($dev)
-                    $filename = "screenshot_$timestamp.png"
-                    # Using QUAS method: exec-out screencap (faster and more reliable)
-                    & adb -s $dev.ID exec-out screencap -p > "$($dev.ID)_$filename"
-                    Write-Host "[i] Screenshot saved: $($dev.ID)_$filename" -ForegroundColor $ColorInfo
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Taking screenshots" -Devices $targetDevices -Command {
+                        param($dev)
+                        $filename = "screenshot_$timestamp.png"
+                        # Using QUAS method: exec-out screencap (faster and more reliable)
+                        & adb -s $dev.ID exec-out screencap -p > "$($dev.ID)_$filename"
+                        Write-Host "[i] Screenshot saved: $($dev.ID)_$filename" -ForegroundColor $ColorInfo
+                    }
+
+                    Write-Host ""
+                    Write-Host "[i] Screenshots are already saved in current directory" -ForegroundColor $ColorInfo
+                    Write-Host "[i] Files named: [DEVICE_ID]_screenshot_*.png" -ForegroundColor $ColorInfo
                 }
-
-                Write-Host ""
-                Write-Host "[i] Screenshots are already saved in current directory" -ForegroundColor $ColorInfo
-                Write-Host "[i] Files named: [DEVICE_ID]_screenshot_*.png" -ForegroundColor $ColorInfo
                 Pause
             }
             "2" {
                 $duration = Read-Host "Enter recording duration in seconds (max 180)"
                 if ($duration -match '^\d+$' -and [int]$duration -gt 0 -and [int]$duration -le 180) {
-                    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+                    $targetDevices = Select-TargetDevices -OperationName "Start Screen Recording ($duration seconds)"
 
-                    Write-Host ""
-                    Write-Host "[*] Starting screen recording on all devices..." -ForegroundColor $ColorInfo
-                    Write-Host "[*] Recording will run for $duration seconds" -ForegroundColor $ColorWarning
-                    Write-Host ""
+                    if ($targetDevices.Count -gt 0) {
+                        $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 
-                    Invoke-BatchCommand -Description "Starting screen recording" -Command {
-                        param($dev)
-                        $filename = "recording_$timestamp.mp4"
-                        Start-Process -FilePath "adb" -ArgumentList "-s", $dev.ID, "shell", "screenrecord", "--time-limit", $duration, "/sdcard/Download/$filename" -NoNewWindow
-                    } -Parallel
+                        Write-Host ""
+                        Write-Host "[*] Starting screen recording on selected devices..." -ForegroundColor $ColorInfo
+                        Write-Host "[*] Recording will run for $duration seconds" -ForegroundColor $ColorWarning
+                        Write-Host ""
 
-                    Write-Host "[i] Recordings in progress..." -ForegroundColor $ColorInfo
-                    Write-Host "[i] Use option 3 to stop early or wait $duration seconds" -ForegroundColor $ColorInfo
+                        Invoke-BatchCommand -Description "Starting screen recording" -Devices $targetDevices -Command {
+                            param($dev)
+                            $filename = "recording_$timestamp.mp4"
+                            Start-Process -FilePath "adb" -ArgumentList "-s", $dev.ID, "shell", "screenrecord", "--time-limit", $duration, "/sdcard/Download/$filename" -NoNewWindow
+                        } -Parallel
+
+                        Write-Host "[i] Recordings in progress..." -ForegroundColor $ColorInfo
+                        Write-Host "[i] Use option 3 to stop early or wait $duration seconds" -ForegroundColor $ColorInfo
+                    }
                 } else {
                     Write-Host "[!] Invalid duration!" -ForegroundColor $ColorError
                 }
                 Pause
             }
             "3" {
-                Invoke-BatchCommand -Description "Stopping screen recording" -Command {
-                    param($dev)
-                    # Kill screenrecord process
-                    & adb -s $dev.ID shell pkill -SIGINT screenrecord
-                }
+                $targetDevices = Select-TargetDevices -OperationName "Stop Screen Recording"
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Stopping screen recording" -Devices $targetDevices -Command {
+                        param($dev)
+                        # Kill screenrecord process
+                        & adb -s $dev.ID shell pkill -SIGINT screenrecord
+                    }
 
-                Write-Host "[✓] Recordings stopped" -ForegroundColor $ColorSuccess
-                Write-Host "[i] Use option 4 to pull recordings" -ForegroundColor $ColorInfo
+                    Write-Host "[✓] Recordings stopped" -ForegroundColor $ColorSuccess
+                    Write-Host "[i] Use option 4 to pull recordings" -ForegroundColor $ColorInfo
+                }
                 Pause
             }
             "4" {
                 # Using QUAS method: Pull from /sdcard/Oculus/Screenshots and /sdcard/Oculus/Videoshots
-                $desktopPath = [Environment]::GetFolderPath("Desktop")
-                $questMediaPath = Join-Path $desktopPath "QuestMedia"
+                $targetDevices = Select-TargetDevices -OperationName "Copy Oculus Screenshots/Videos to PC"
 
-                if (!(Test-Path $questMediaPath)) {
-                    New-Item -ItemType Directory -Path $questMediaPath -Force | Out-Null
+                if ($targetDevices.Count -gt 0) {
+                    $desktopPath = [Environment]::GetFolderPath("Desktop")
+                    $questMediaPath = Join-Path $desktopPath "QuestMedia"
+
+                    if (!(Test-Path $questMediaPath)) {
+                        New-Item -ItemType Directory -Path $questMediaPath -Force | Out-Null
+                    }
+
+                    Invoke-BatchCommand -Description "Copying Oculus media to Desktop/QuestMedia" -Devices $targetDevices -Command {
+                        param($dev)
+                        $deviceFolder = Join-Path $questMediaPath $dev.ID
+                        New-Item -ItemType Directory -Path $deviceFolder -Force | Out-Null
+
+                        # Pull screenshots from Oculus folder (QUAS method)
+                        & adb -s $dev.ID pull /sdcard/Oculus/Screenshots "$deviceFolder\Screenshots" 2>$null
+                        # Pull videoshots from Oculus folder (QUAS method)
+                        & adb -s $dev.ID pull /sdcard/Oculus/Videoshots "$deviceFolder\Videoshots" 2>$null
+
+                        Write-Host "[i] Media from $($dev.Model) copied to $deviceFolder" -ForegroundColor $ColorInfo
+                    }
+
+                    Write-Host ""
+                    Write-Host "[✓] All media saved to: $questMediaPath" -ForegroundColor $ColorSuccess
+                    Write-Host "[i] Opening folder..." -ForegroundColor $ColorInfo
+                    Start-Process $questMediaPath
                 }
-
-                Invoke-BatchCommand -Description "Copying Oculus media to Desktop/QuestMedia" -Command {
-                    param($dev)
-                    $deviceFolder = Join-Path $questMediaPath $dev.ID
-                    New-Item -ItemType Directory -Path $deviceFolder -Force | Out-Null
-
-                    # Pull screenshots from Oculus folder (QUAS method)
-                    & adb -s $dev.ID pull /sdcard/Oculus/Screenshots "$deviceFolder\Screenshots" 2>$null
-                    # Pull videoshots from Oculus folder (QUAS method)
-                    & adb -s $dev.ID pull /sdcard/Oculus/Videoshots "$deviceFolder\Videoshots" 2>$null
-
-                    Write-Host "[i] Media from $($dev.Model) copied to $deviceFolder" -ForegroundColor $ColorInfo
-                }
-
-                Write-Host ""
-                Write-Host "[✓] All media saved to: $questMediaPath" -ForegroundColor $ColorSuccess
-                Write-Host "[i] Opening folder..." -ForegroundColor $ColorInfo
-                Start-Process $questMediaPath
                 Pause
             }
             "5" {
@@ -607,17 +741,20 @@ function Menu-Screenshot {
                     New-Item -ItemType Directory -Path $localFolder -Force | Out-Null
                 }
 
-                Invoke-BatchCommand -Description "Pulling media files" -Command {
-                    param($dev)
-                    # Create device-specific subfolder
-                    $deviceFolder = Join-Path $localFolder $dev.ID
-                    New-Item -ItemType Directory -Path $deviceFolder -Force | Out-Null
+                $targetDevices = Select-TargetDevices -OperationName "Pull Custom Files from Devices"
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Pulling media files" -Devices $targetDevices -Command {
+                        param($dev)
+                        # Create device-specific subfolder
+                        $deviceFolder = Join-Path $localFolder $dev.ID
+                        New-Item -ItemType Directory -Path $deviceFolder -Force | Out-Null
 
-                    # Pull all screenshots and recordings
-                    & adb -s $dev.ID pull /sdcard/Download/ $deviceFolder
+                        # Pull all screenshots and recordings
+                        & adb -s $dev.ID pull /sdcard/Download/ $deviceFolder
+                    }
+
+                    Write-Host "[✓] Files saved to: $localFolder" -ForegroundColor $ColorSuccess
                 }
-
-                Write-Host "[✓] Files saved to: $localFolder" -ForegroundColor $ColorSuccess
                 Pause
             }
             "0" { return }
@@ -686,11 +823,14 @@ while ($true) {
         }
         "7" {
             # Reboot
-            $confirm = Read-Host "Reboot all devices? (yes/no)"
+            $confirm = Read-Host "Reboot selected devices? (yes/no)"
             if ($confirm -eq "yes") {
-                Invoke-BatchCommand -Description "Rebooting all devices" -Command {
-                    param($dev)
-                    & adb -s $dev.ID reboot
+                $targetDevices = Select-TargetDevices -OperationName "Reboot Devices"
+                if ($targetDevices.Count -gt 0) {
+                    Invoke-BatchCommand -Description "Rebooting devices" -Devices $targetDevices -Command {
+                        param($dev)
+                        & adb -s $dev.ID reboot
+                    }
                 }
             }
             Pause

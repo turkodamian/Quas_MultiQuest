@@ -12,6 +12,7 @@ MultiQuest Manager extends QUAS with the ability to perform batch operations acr
 
 ### Key Features
 
+✅ **Smart Device Selection** - Auto-select single device, or choose specific devices/all for batch operations
 ✅ **Batch Operations** - Execute commands on all connected Quest devices simultaneously
 ✅ **QUAS-Proven Commands** - Uses the exact same tested ADB commands from QUAS v5.2.0
 ✅ **Auto-Detection** - Automatically detects all connected Quest devices
@@ -159,7 +160,14 @@ All commands have been tested and proven in QUAS for reliability.
 
 ## Version History
 
-### v1.1.0 (Current)
+### v1.2.0 (Current)
+- **Smart Device Selection**: Auto-select when 1 device, prompt for specific/all when multiple
+- Choose specific devices (1,2,3 or comma-separated)
+- Apply to all devices at once
+- Cancel option for any batch operation
+- Improved user experience for single and multi-device scenarios
+
+### v1.1.0
 - Updated to use proven QUAS ADB commands
 - Screenshot: `exec-out screencap` (faster, more reliable)
 - APK install: `install -r -g --no-streaming`

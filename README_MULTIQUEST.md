@@ -12,6 +12,7 @@ MultiQuest Manager extends QUAS with the ability to perform batch operations acr
 
 ### Key Features
 
+✅ **Device Inventory System** - Label your Quest devices (001-100) and track them with serial numbers
 ✅ **Smart Device Selection** - Auto-select single device, or choose specific devices/all for batch operations
 ✅ **Batch Operations** - Execute commands on all connected Quest devices simultaneously
 ✅ **QUAS-Proven Commands** - Uses the exact same tested ADB commands from QUAS v5.2.0
@@ -160,7 +161,15 @@ All commands have been tested and proven in QUAS for reliability.
 
 ## Version History
 
-### v1.2.0 (Current)
+### v1.3.0 (Current)
+- **Device Inventory System**: Track Quest devices with physical label numbers (001-100)
+- Create device inventory CSV template with 100 slots
+- Update inventory automatically when new devices are connected
+- View inventory with connection status (CONNECTED/Offline)
+- All operations now display device label numbers (e.g., "#042 - Quest 3")
+- Export inventory to Excel-compatible CSV
+
+### v1.2.0
 - **Smart Device Selection**: Auto-select when 1 device, prompt for specific/all when multiple
 - Choose specific devices (1,2,3 or comma-separated)
 - Apply to all devices at once

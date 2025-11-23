@@ -16,7 +16,9 @@ $script:ColorInfo = "White"
 
 # Global variables
 $script:ConnectedDevices = @()
-$script:Version = "1.2.0"
+$script:Version = "1.3.0"
+$script:DeviceInventoryPath = Join-Path $PSScriptRoot "quest_inventory.csv"
+$script:DeviceInventory = @{}
 
 function Show-Banner {
     Clear-Host
@@ -25,6 +27,243 @@ function Show-Banner {
     Write-Host "    Batch ADB Manager for Multiple Meta Quest Devices" -ForegroundColor $ColorTitle
     Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor $ColorTitle
     Write-Host ""
+}
+
+function Load-DeviceInventory {
+    $script:DeviceInventory = @{}
+
+    if (Test-Path $script:DeviceInventoryPath) {
+        try {
+            $csv = Import-Csv $script:DeviceInventoryPath
+            foreach ($row in $csv) {
+                if ($row.SerialNumber -and $row.SerialNumber -ne "") {
+                    $script:DeviceInventory[$row.SerialNumber] = $row.LabelNumber
+                }
+            }
+            Write-Host "[✓] Loaded device inventory: $($script:DeviceInventory.Count) devices" -ForegroundColor $ColorSuccess
+        } catch {
+            Write-Host "[!] Error loading inventory: $($_.Exception.Message)" -ForegroundColor $ColorError
+        }
+    }
+}
+
+function Get-DeviceLabel {
+    param([string]$SerialNumber)
+
+    if ($script:DeviceInventory.ContainsKey($SerialNumber)) {
+        return $script:DeviceInventory[$SerialNumber]
+    }
+    return "---"
+}
+
+function Get-DeviceDisplayName {
+    param($Device)
+
+    $label = Get-DeviceLabel -SerialNumber $Device.ID
+    if ($label -ne "---") {
+        return "#$label - $($Device.Model) ($($Device.ID))"
+    }
+    return "$($Device.Model) ($($Device.ID))"
+}
+
+function Menu-DeviceInventory {
+    while ($true) {
+        Show-Banner
+        Write-Host "═══════════════ DEVICE INVENTORY ══════════════" -ForegroundColor $ColorTitle
+        Write-Host ""
+        Write-Host " [1]  Create devices list (001-100)" -ForegroundColor $ColorInfo
+        Write-Host " [2]  Update devices list (add new devices)" -ForegroundColor $ColorInfo
+        Write-Host " [3]  View inventory" -ForegroundColor $ColorInfo
+        Write-Host " [4]  Export inventory to Excel-compatible CSV" -ForegroundColor $ColorInfo
+        Write-Host " [0]  Back to main menu" -ForegroundColor $ColorWarning
+        Write-Host ""
+
+        $choice = Read-Host "Select option"
+
+        switch ($choice) {
+            "1" {
+                # Create new inventory
+                Write-Host ""
+                if (Test-Path $script:DeviceInventoryPath) {
+                    Write-Host "[!] WARNING: quest_inventory.csv already exists!" -ForegroundColor $ColorWarning
+                    $confirm = Read-Host "Overwrite existing inventory? (yes/no)"
+                    if ($confirm -ne "yes") {
+                        Write-Host "[i] Operation cancelled" -ForegroundColor $ColorInfo
+                        Pause
+                        continue
+                    }
+                }
+
+                Write-Host "[*] Creating device inventory template (001-100)..." -ForegroundColor $ColorInfo
+
+                # Create CSV header and 100 rows
+                $csvContent = "LabelNumber,SerialNumber,Model,Brand,Notes`n"
+                for ($i = 1; $i -le 100; $i++) {
+                    $labelNum = "{0:D3}" -f $i
+                    $csvContent += "$labelNum,,,Quest,`n"
+                }
+
+                # Save to file
+                $csvContent | Out-File -FilePath $script:DeviceInventoryPath -Encoding UTF8 -NoNewline
+
+                Write-Host "[✓] Inventory template created: $script:DeviceInventoryPath" -ForegroundColor $ColorSuccess
+                Write-Host ""
+                Write-Host "[i] Next steps:" -ForegroundColor $ColorInfo
+                Write-Host "    1. Open quest_inventory.csv in Excel or Notepad" -ForegroundColor $ColorInfo
+                Write-Host "    2. Fill in the SerialNumber column for each labeled device" -ForegroundColor $ColorInfo
+                Write-Host "    3. Save the file" -ForegroundColor $ColorInfo
+                Write-Host "    4. Use 'Update devices list' to add newly connected devices" -ForegroundColor $ColorInfo
+                Write-Host ""
+                Write-Host "[i] Opening CSV file..." -ForegroundColor $ColorInfo
+                Start-Process $script:DeviceInventoryPath
+                Pause
+            }
+            "2" {
+                # Update inventory with new connected devices
+                Write-Host ""
+                if (!(Test-Path $script:DeviceInventoryPath)) {
+                    Write-Host "[!] Inventory file not found. Please create it first (option 1)" -ForegroundColor $ColorError
+                    Pause
+                    continue
+                }
+
+                # Get connected devices
+                if ($script:ConnectedDevices.Count -eq 0) {
+                    Write-Host "[!] No devices connected! Connect devices first." -ForegroundColor $ColorError
+                    Pause
+                    continue
+                }
+
+                # Load current inventory
+                Load-DeviceInventory
+
+                Write-Host "[*] Checking for new devices..." -ForegroundColor $ColorInfo
+                Write-Host ""
+
+                $newDevices = @()
+                foreach ($dev in $script:ConnectedDevices) {
+                    if (-not $script:DeviceInventory.ContainsKey($dev.ID)) {
+                        $newDevices += $dev
+                        Write-Host "[+] New device found: $($dev.Model) - $($dev.ID)" -ForegroundColor $ColorSuccess
+                    }
+                }
+
+                if ($newDevices.Count -eq 0) {
+                    Write-Host "[i] No new devices to add. All connected devices are already in inventory." -ForegroundColor $ColorInfo
+                    Pause
+                    continue
+                }
+
+                Write-Host ""
+                Write-Host "[*] Found $($newDevices.Count) new device(s)" -ForegroundColor $ColorInfo
+                $confirm = Read-Host "Add these devices to inventory? (yes/no)"
+
+                if ($confirm -eq "yes") {
+                    # Read current CSV
+                    $csvRows = Import-Csv $script:DeviceInventoryPath
+
+                    # Find first empty row (no serial number)
+                    $emptyRows = $csvRows | Where-Object { $_.SerialNumber -eq "" }
+
+                    if ($emptyRows.Count -lt $newDevices.Count) {
+                        Write-Host "[!] WARNING: Not enough empty rows in inventory!" -ForegroundColor $ColorWarning
+                        Write-Host "[i] Available rows: $($emptyRows.Count), New devices: $($newDevices.Count)" -ForegroundColor $ColorWarning
+                    }
+
+                    # Add new devices to empty rows
+                    $addedCount = 0
+                    foreach ($dev in $newDevices) {
+                        $emptyRow = $emptyRows | Where-Object { $_.SerialNumber -eq "" } | Select-Object -First 1
+
+                        if ($emptyRow) {
+                            $emptyRow.SerialNumber = $dev.ID
+                            $emptyRow.Model = $dev.Model
+                            $emptyRow.Brand = $dev.Brand
+                            $addedCount++
+                            Write-Host "[✓] Added: #$($emptyRow.LabelNumber) → $($dev.ID)" -ForegroundColor $ColorSuccess
+                        }
+                    }
+
+                    # Save updated CSV
+                    $csvRows | Export-Csv -Path $script:DeviceInventoryPath -NoTypeInformation -Encoding UTF8
+
+                    Write-Host ""
+                    Write-Host "[✓] Inventory updated: $addedCount device(s) added" -ForegroundColor $ColorSuccess
+                    Write-Host "[i] Opening CSV file to verify..." -ForegroundColor $ColorInfo
+                    Start-Process $script:DeviceInventoryPath
+
+                    # Reload inventory
+                    Load-DeviceInventory
+                }
+
+                Pause
+            }
+            "3" {
+                # View inventory
+                Show-Banner
+                Write-Host "═══════════════════ DEVICE INVENTORY ══════════════════════" -ForegroundColor $ColorTitle
+                Write-Host ""
+
+                if (!(Test-Path $script:DeviceInventoryPath)) {
+                    Write-Host "[!] Inventory file not found. Please create it first (option 1)" -ForegroundColor $ColorError
+                    Pause
+                    continue
+                }
+
+                Load-DeviceInventory
+
+                $csv = Import-Csv $script:DeviceInventoryPath
+                $registeredDevices = $csv | Where-Object { $_.SerialNumber -ne "" }
+
+                Write-Host "Total registered devices: $($registeredDevices.Count) / 100" -ForegroundColor $ColorSuccess
+                Write-Host ""
+                Write-Host "┌────────┬──────────────────┬─────────────┬──────────────┐" -ForegroundColor $ColorTitle
+                Write-Host "│ Label  │ Serial Number    │ Model       │ Status       │" -ForegroundColor $ColorTitle
+                Write-Host "├────────┼──────────────────┼─────────────┼──────────────┤" -ForegroundColor $ColorTitle
+
+                foreach ($device in $registeredDevices) {
+                    $isConnected = $script:ConnectedDevices | Where-Object { $_.ID -eq $device.SerialNumber }
+                    $status = if ($isConnected) { "CONNECTED" } else { "Offline" }
+                    $statusColor = if ($isConnected) { $ColorSuccess } else { $ColorWarning }
+
+                    $labelPadded = $device.LabelNumber.PadRight(6)
+                    $serialPadded = $device.SerialNumber.PadRight(16)
+                    $modelPadded = ($device.Model).PadRight(11)
+                    $statusPadded = $status.PadRight(12)
+
+                    Write-Host "│ $labelPadded │ $serialPadded │ $modelPadded │ " -NoNewline -ForegroundColor $ColorInfo
+                    Write-Host "$statusPadded" -NoNewline -ForegroundColor $statusColor
+                    Write-Host " │" -ForegroundColor $ColorInfo
+                }
+
+                Write-Host "└────────┴──────────────────┴─────────────┴──────────────┘" -ForegroundColor $ColorTitle
+                Write-Host ""
+
+                $emptySlots = 100 - $registeredDevices.Count
+                Write-Host "[i] Empty label slots available: $emptySlots" -ForegroundColor $ColorInfo
+
+                Pause
+            }
+            "4" {
+                # Export inventory
+                Write-Host ""
+                if (!(Test-Path $script:DeviceInventoryPath)) {
+                    Write-Host "[!] Inventory file not found. Please create it first (option 1)" -ForegroundColor $ColorError
+                    Pause
+                    continue
+                }
+
+                $exportPath = Join-Path $PSScriptRoot "quest_inventory_export_$(Get-Date -Format 'yyyyMMdd_HHmmss').csv"
+                Copy-Item -Path $script:DeviceInventoryPath -Destination $exportPath
+
+                Write-Host "[✓] Inventory exported to: $exportPath" -ForegroundColor $ColorSuccess
+                Write-Host "[i] Opening file..." -ForegroundColor $ColorInfo
+                Start-Process $exportPath
+                Pause
+            }
+            "0" { return }
+        }
+    }
 }
 
 function Get-ConnectedQuests {
@@ -63,7 +302,8 @@ function Get-ConnectedQuests {
         Write-Host "[✓] Found $($devices.Count) Quest device(s):" -ForegroundColor $ColorSuccess
         $i = 1
         foreach ($dev in $devices) {
-            Write-Host "    [$i] $($dev.Brand) $($dev.Model) - ID: $($dev.ID) - Android $($dev.Android)" -ForegroundColor $ColorInfo
+            $displayName = Get-DeviceDisplayName -Device $dev
+            Write-Host "    [$i] $displayName - Android $($dev.Android)" -ForegroundColor $ColorInfo
             $i++
         }
     }
@@ -84,7 +324,8 @@ function Select-TargetDevices {
 
     if ($script:ConnectedDevices.Count -eq 1) {
         # Only one device, use it automatically
-        Write-Host "[i] Auto-selected: $($script:ConnectedDevices[0].Model) ($($script:ConnectedDevices[0].ID))" -ForegroundColor $ColorInfo
+        $displayName = Get-DeviceDisplayName -Device $script:ConnectedDevices[0]
+        Write-Host "[i] Auto-selected: $displayName" -ForegroundColor $ColorInfo
         return $script:ConnectedDevices
     }
 
@@ -98,7 +339,8 @@ function Select-TargetDevices {
 
     for ($i = 0; $i -lt $script:ConnectedDevices.Count; $i++) {
         $dev = $script:ConnectedDevices[$i]
-        Write-Host "  [$($i+1)] $($dev.Brand) $($dev.Model) - $($dev.ID)" -ForegroundColor $ColorInfo
+        $displayName = Get-DeviceDisplayName -Device $dev
+        Write-Host "  [$($i+1)] $displayName" -ForegroundColor $ColorInfo
     }
 
     Write-Host ""
@@ -152,7 +394,8 @@ function Show-MainMenu {
     Write-Host " [6]  Certificate Management" -ForegroundColor $ColorInfo
     Write-Host " [7]  Reboot Devices" -ForegroundColor $ColorInfo
     Write-Host " [8]  Device Information" -ForegroundColor $ColorInfo
-    Write-Host " [9]  Refresh Device List" -ForegroundColor $ColorInfo
+    Write-Host " [9]  Device Inventory (Label Management)" -ForegroundColor $ColorInfo
+    Write-Host " [10] Refresh Device List" -ForegroundColor $ColorInfo
     Write-Host " [0]  Exit" -ForegroundColor $ColorError
     Write-Host ""
     Write-Host "═══════════════════════════════════════════════" -ForegroundColor $ColorTitle
@@ -201,13 +444,18 @@ function Invoke-BatchCommand {
     } else {
         # Execute sequentially
         foreach ($device in $Devices) {
-            Write-Host "[→] Processing: $($device.Model) ($($device.ID))" -ForegroundColor $ColorWarning
+            $displayName = Get-DeviceDisplayName -Device $device
+            Write-Host "[→] Processing: $displayName" -ForegroundColor $ColorWarning
             try {
                 $result = & $Command $device
-                Write-Host "[✓] Success: $($device.Model)" -ForegroundColor $ColorSuccess
+                $label = Get-DeviceLabel -SerialNumber $device.ID
+                $successMsg = if ($label -ne "---") { "#$label - $($device.Model)" } else { $device.Model }
+                Write-Host "[✓] Success: $successMsg" -ForegroundColor $ColorSuccess
                 $results += $result
             } catch {
-                Write-Host "[✗] Failed: $($device.Model) - $($_.Exception.Message)" -ForegroundColor $ColorError
+                $label = Get-DeviceLabel -SerialNumber $device.ID
+                $errorMsg = if ($label -ne "---") { "#$label - $($device.Model)" } else { $device.Model }
+                Write-Host "[✗] Failed: $errorMsg - $($_.Exception.Message)" -ForegroundColor $ColorError
             }
             Write-Host ""
         }
@@ -791,6 +1039,9 @@ function Menu-DeviceInformation {
 # Main Program
 Show-Banner
 
+# Load device inventory on startup
+Load-DeviceInventory
+
 if ($AutoDetect) {
     Get-ConnectedQuests
 }
@@ -798,6 +1049,9 @@ if ($AutoDetect) {
 while ($true) {
     Show-Banner
     Write-Host "[i] Connected devices: $($script:ConnectedDevices.Count)" -ForegroundColor $ColorInfo
+    if ($script:DeviceInventory.Count -gt 0) {
+        Write-Host "[i] Registered devices in inventory: $($script:DeviceInventory.Count)" -ForegroundColor $ColorInfo
+    }
     Write-Host ""
 
     $choice = Show-MainMenu
@@ -839,6 +1093,9 @@ while ($true) {
             Menu-DeviceInformation
         }
         "9" {
+            Menu-DeviceInventory
+        }
+        "10" {
             Get-ConnectedQuests
             Pause
         }

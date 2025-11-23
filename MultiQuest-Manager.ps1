@@ -96,15 +96,18 @@ function Menu-DeviceInventory {
 
                 Write-Host "[*] Creating device inventory template (001-100)..." -ForegroundColor $ColorInfo
 
-                # Create CSV header and 100 rows
-                $csvContent = "LabelNumber,SerialNumber,Model,Brand,Notes`n"
+                # Create CSV rows as array
+                $csvRows = @()
+                $csvRows += "LabelNumber,SerialNumber,Model,Brand,Notes"
+
                 for ($i = 1; $i -le 100; $i++) {
                     $labelNum = "{0:D3}" -f $i
-                    $csvContent += "${labelNum},,,Quest,`n"
+                    $row = $labelNum + ",,,Quest,"
+                    $csvRows += $row
                 }
 
                 # Save to file
-                $csvContent | Out-File -FilePath $script:DeviceInventoryPath -Encoding UTF8 -NoNewline
+                $csvRows -join "`n" | Out-File -FilePath $script:DeviceInventoryPath -Encoding UTF8 -NoNewline
 
                 Write-Host "[✓] Inventory template created: $script:DeviceInventoryPath" -ForegroundColor $ColorSuccess
                 Write-Host ""

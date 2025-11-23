@@ -100,7 +100,7 @@ function Menu-DeviceInventory {
                 $csvContent = "LabelNumber,SerialNumber,Model,Brand,Notes`n"
                 for ($i = 1; $i -le 100; $i++) {
                     $labelNum = "{0:D3}" -f $i
-                    $csvContent += "$labelNum,,,Quest,`n"
+                    $csvContent += "${labelNum},,,Quest,`n"
                 }
 
                 # Save to file

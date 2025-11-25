@@ -1,3 +1,4 @@
+The MultiQuest functions are not working yet, come back soon
 
 ## Quas - QUest ADB Scripts
 #### Utility - a collection of the most commonly used commands and actions for the headset. It's like a "multitool" for beginners and beyond. No need to search for and learn adb commands, parameters, and so on.

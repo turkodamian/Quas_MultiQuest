@@ -1,0 +1,245 @@
+﻿{
+    "devices":  [
+                    {
+                        "firstSeen":  "2025-11-25 16:52:02",
+                        "alias":  "Q3-17",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7G070P",
+                        "lastSeen":  "2025-11-26 10:26:02",
+                        "customNumber":  "17",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 16:52:02",
+                        "alias":  "Q3-02",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7W0SLT",
+                        "lastSeen":  "2025-11-26 10:26:02",
+                        "customNumber":  "02",
+                        "notes":  "asdasdas"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 18:43:12",
+                        "alias":  "Q3-18",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7Y06MH",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "customNumber":  "18",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "Q3-10",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7K00RC",
+                        "lastSeen":  "2025-11-26 12:25:32",
+                        "customNumber":  "10",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "Q3-13",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7L04TY",
+                        "lastSeen":  "2025-11-26 10:26:02",
+                        "customNumber":  "13",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "Q3-07",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7L04ZV",
+                        "lastSeen":  "2025-11-26 12:37:16",
+                        "customNumber":  "Q3-07",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "Q3-19",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7P03XQ",
+                        "lastSeen":  "2025-11-26 12:25:32",
+                        "customNumber":  "19",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "Q3-15",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7P049K",
+                        "lastSeen":  "2025-11-26 12:25:32",
+                        "customNumber":  "15",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "QR-05",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7W0L4Z",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "customNumber":  "05",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "Q3-03",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7Y08G4",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "customNumber":  "03",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "QR-04",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7Y0DX6",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "customNumber":  "04",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "Q3-14",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7Z05QY",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "customNumber":  "14",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "QR-06",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF8008PZ",
+                        "lastSeen":  "2025-11-26 12:25:32",
+                        "customNumber":  "06",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "Q3-16",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF800DZ8",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "customNumber":  "16",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "Q3-21",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZFCM02JQ",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "customNumber":  "21",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "alias":  "Q3-11",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZFCQ02HF",
+                        "lastSeen":  "2025-11-26 12:25:32",
+                        "customNumber":  "11",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "serial":  "2G0YC1ZG07005Z",
+                        "alias":  "Q3-22",
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "model":  "Quest_3",
+                        "customNumber":  "22",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "serial":  "340YC10G7Y12B7",
+                        "alias":  "3S-24",
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "lastSeen":  "2025-11-26 10:26:02",
+                        "model":  "Quest_3S",
+                        "customNumber":  "24",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "serial":  "340YC10G80033F",
+                        "alias":  "3S-25",
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "lastSeen":  "2025-11-26 12:25:32",
+                        "model":  "Quest_3S",
+                        "customNumber":  "25",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "serial":  "340YC10G800467",
+                        "alias":  "3S-23",
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "model":  "Quest_3S",
+                        "customNumber":  "23",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "serial":  "340YC10G810HT9",
+                        "alias":  "3S-27",
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "model":  "Quest_3S",
+                        "customNumber":  "27",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "serial":  "340YC10G810QHR",
+                        "alias":  "3S-26",
+                        "firstSeen":  "2025-11-25 21:30:34",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "model":  "Quest_3S",
+                        "customNumber":  "26",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-25 22:15:57",
+                        "alias":  "Q3-09",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF7S0DKG",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "customNumber":  "09",
+                        "notes":  "ShowtimeVR Permitido"
+                    },
+                    {
+                        "firstSeen":  "2025-11-26 08:37:25",
+                        "alias":  "QR-08",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZF76061T",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "customNumber":  "08",
+                        "notes":  ""
+                    },
+                    {
+                        "firstSeen":  "2025-11-26 09:21:01",
+                        "alias":  "Q2-68",
+                        "model":  "Quest_2",
+                        "serial":  "1WMHH818FK0393",
+                        "lastSeen":  "2025-11-26 12:36:23",
+                        "customNumber":  "68",
+                        "notes":  ""
+                    },
+                    {
+                        "firstSeen":  "2025-11-26 12:36:23",
+                        "alias":  "Q3-20",
+                        "model":  "Quest_3",
+                        "serial":  "2G0YC1ZG0X01PW",
+                        "lastSeen":  "2025-11-26 13:11:06",
+                        "customNumber":  "20",
+                        "notes":  ""
+                    }
+                ],
+    "preferences":  {
+                        "defaultExecutionMode":  "parallel",
+                        "maxParallelJobs":  5,
+                        "commandTimeout":  300,
+                        "autoRefreshDevices":  true
+                    },
+    "lastUpdated":  "2025-11-26 13:11:06"
+}

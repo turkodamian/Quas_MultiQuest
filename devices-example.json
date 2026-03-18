@@ -1,0 +1,56 @@
+{
+    "devices": [
+        {
+            "serial": "2G0YC1ZF7G070P",
+            "alias": "Quest-Sala-Conferencias-A",
+            "customNumber": "1",
+            "model": "Quest_3",
+            "notes": "Visor principal - Sala de conferencias piso 3. Usado para presentaciones a clientes.",
+            "lastSeen": "2025-11-25 12:15:30",
+            "firstSeen": "2025-11-20 09:00:00"
+        },
+        {
+            "serial": "2G0YC1ZF7W0SLT",
+            "alias": "Quest-Desarrollo-Backend",
+            "customNumber": "10",
+            "model": "Quest_3",
+            "notes": "Equipo de desarrollo backend. Asignado a Juan Perez. Firmware actualizado 2025-11-22.",
+            "lastSeen": "2025-11-25 12:15:30",
+            "firstSeen": "2025-11-18 14:30:00"
+        },
+        {
+            "serial": "2G0YC1ZF8A123BC",
+            "alias": "Quest-Testing-QA",
+            "customNumber": "20",
+            "model": "Quest_3",
+            "notes": "Visor dedicado para pruebas QA. No usar para desarrollo. Requiere calibracion de tracking.",
+            "lastSeen": "2025-11-25 11:45:00",
+            "firstSeen": "2025-11-25 11:30:00"
+        },
+        {
+            "serial": "1WMHH8V0123456",
+            "alias": "Quest-Demo-Clientes",
+            "customNumber": "5",
+            "model": "Quest_2",
+            "notes": "Visor para demos con clientes potenciales. Mantener siempre cargado y con apps actualizadas.",
+            "lastSeen": "2025-11-24 16:20:00",
+            "firstSeen": "2025-10-15 10:00:00"
+        },
+        {
+            "serial": "2G0YC1ZF9D456EF",
+            "alias": "Quest-Lab-VR-Principal",
+            "customNumber": "100",
+            "model": "Quest_3",
+            "notes": "Laboratorio VR - No remover de la sala. Configuracion especial para experimentos de tracking.",
+            "lastSeen": "2025-11-25 12:15:30",
+            "firstSeen": "2025-11-01 08:00:00"
+        }
+    ],
+    "preferences": {
+        "defaultExecutionMode": "parallel",
+        "maxParallelJobs": 5,
+        "commandTimeout": 300,
+        "autoRefreshDevices": true
+    },
+    "lastUpdated": "2025-11-25 12:15:30"
+}

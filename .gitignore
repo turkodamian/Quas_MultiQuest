@@ -1,0 +1,38 @@
+# Binaries and DLLs
+*.exe
+*.dll
+
+# Logs
+Logs/
+
+# Videos
+Videos/
+
+# Original Quas CMD scripts (not part of MultiDevice)
+quas_v5.2.0.eng.cmd
+quas_v5.2.0.rus.cmd
+backupeng.cmd
+backuprus.cmd
+qidcontexten.cmd
+qidcontextru.cmd
+rentry.cmd
+
+# Original Quas menu files
+menueng.txt
+menurus.txt
+
+# Binary tools
+scrcpy-server
+iperf3.18
+wget/
+7z.dll
+7z.exe
+
+# Images
+*.jpg
+*.png
+*.ico
+
+# Misc
+cygwin1.dll
+NOTA-IMPORTANTE.txt

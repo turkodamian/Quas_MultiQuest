@@ -1,0 +1,1 @@
+powershell -ExecutionPolicy Bypass -Command "& 'c:\appz\Quas\Quas-main\Quas-MultiDevice.ps1' ; exit"

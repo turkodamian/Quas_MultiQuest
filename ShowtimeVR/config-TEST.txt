@@ -1,0 +1,24 @@
+﻿name = TEST-VISOR
+nr = 42
+autonomousMode = true
+preferredUIMode = None
+zoom = 0
+
+# flatScreenSize value tells how big screen should be
+# when playing flat videos, both 2D and 3D.
+# To enlarge screen put decimal number greater than 100 and
+# to reduce it lesser than 100, but greater than 0. Default = 100
+flatScreenSize = 100
+
+# If file path doesn't contain extension,
+# the app will search for .png and .jpg files.
+logo = Branding/logo
+skybox = Branding/skybox
+
+hideDemo = true
+
+disableLivePreview = true
+wifiID = Realidad360-5G
+wifiPW = vrvrvrvr
+autostart = 1
+playerForce = 1
